@@ -1,0 +1,328 @@
+[
+  {
+    "id": "tab-iot-onchain",
+    "type": "tab",
+    "label": "① 設備狀態上鏈",
+    "disabled": false,
+    "info": "接收 IoT 設備 MQTT 狀態，組裝 IOTA Move 交易並提交至鏈上，回傳 tx_digest 給設備"
+  },
+  {
+    "id": "tab-device-control",
+    "type": "tab",
+    "label": "② 設備控制",
+    "disabled": false,
+    "info": "接收 HTTP API 請求，驗證指令後透過 MQTT 下發給實體設備"
+  },
+  {
+    "id": "tab-iota-events",
+    "type": "tab",
+    "label": "③ IOTA 事件監聽",
+    "disabled": false,
+    "info": "訂閱 IOTA Full Node WebSocket，過濾家庭自動化相關交易並廣播至 MQTT"
+  },
+  {
+    "id": "mqtt-broker-config",
+    "type": "mqtt-broker",
+    "name": "Mosquitto (iota-net)",
+    "broker": "mosquitto",
+    "port": "1883",
+    "clientid": "node-red-client",
+    "autoConnect": true,
+    "usetls": false,
+    "protocolVersion": "4",
+    "keepalive": "60",
+    "cleansession": true,
+    "birthTopic": "home/nodered/status",
+    "birthQos": "1",
+    "birthPayload": "online",
+    "birthMsg": {},
+    "closeTopic": "home/nodered/status",
+    "closeQos": "1",
+    "closePayload": "offline",
+    "closeMsg": {},
+    "willTopic": "home/nodered/status",
+    "willQos": "1",
+    "willPayload": "offline",
+    "willMsg": {},
+    "credentials": {
+      "user": "nodered",
+      "password": "nodered_secret"
+    }
+  },
+
+  {
+    "id": "flow1-comment",
+    "type": "comment",
+    "z": "tab-iot-onchain",
+    "name": "Flow 1: IoT 設備狀態 → IOTA 鏈",
+    "info": "1. MQTT 訂閱設備狀態\n2. 組裝 IOTA programmableTransaction\n3. 提交至 fullnode:9000\n4. 回傳 tx_digest 給設備",
+    "x": 200,
+    "y": 40
+  },
+  {
+    "id": "mqtt-in-device-state",
+    "type": "mqtt in",
+    "z": "tab-iot-onchain",
+    "name": "訂閱設備狀態",
+    "topic": "home/devices/+/state",
+    "qos": "1",
+    "datatype": "json",
+    "broker": "mqtt-broker-config",
+    "nl": false,
+    "rap": false,
+    "rh": "0",
+    "x": 180,
+    "y": 120,
+    "wires": [["fn-validate-payload"]]
+  },
+  {
+    "id": "fn-validate-payload",
+    "type": "function",
+    "z": "tab-iot-onchain",
+    "name": "驗證 & 擷取 device_id",
+    "func": "// topic 格式: home/devices/{device_id}/state\nconst parts = msg.topic.split('/');\nif (parts.length < 4) {\n    node.warn('Invalid topic: ' + msg.topic);\n    return null;\n}\n\nconst deviceId = parts[2];\nconst payload = msg.payload;\n\n// 基本驗證\nif (!payload || typeof payload !== 'object') {\n    node.warn('Invalid payload from device: ' + deviceId);\n    return null;\n}\n\n// 組裝傳遞給下一個節點的訊息\nmsg.deviceId = deviceId;\nmsg.sensorData = payload;\nmsg.timestamp = new Date().toISOString();\nmsg.responseTopic = `home/devices/${deviceId}/tx_digest`;\n\nreturn msg;",
+    "outputs": 1,
+    "x": 420,
+    "y": 120,
+    "wires": [["fn-build-iota-tx"]]
+  },
+  {
+    "id": "fn-build-iota-tx",
+    "type": "function",
+    "z": "tab-iot-onchain",
+    "name": "組裝 IOTA Move 交易 payload",
+    "func": "// 組裝 IOTA JSON-RPC 呼叫\n// 使用 home_iot::record::record_state Move 函數\nconst senderAddress = env.get('IOTA_SENDER_ADDRESS') || '0x0000000000000000000000000000000000000000000000000000000000000000';\n\nconst txPayload = {\n    jsonrpc: '2.0',\n    id: Date.now(),\n    method: 'unsafe_moveCall',\n    params: [\n        senderAddress,\n        '0x0000000000000000000000000000000000000000000000000000000000000000', // package id（部署後填入）\n        'home_iot',\n        'record_state',\n        [],  // type_arguments\n        [\n            msg.deviceId,\n            JSON.stringify(msg.sensorData),\n            msg.timestamp\n        ],\n        null,  // gas\n        '10000000'  // gas budget\n    ]\n};\n\nmsg.payload = txPayload;\nmsg.headers = { 'Content-Type': 'application/json' };\nmsg.url = global.get('iotaRpcUrl') || 'http://fullnode:9000';\n\nreturn msg;",
+    "outputs": 1,
+    "x": 660,
+    "y": 120,
+    "wires": [["http-post-iota"]]
+  },
+  {
+    "id": "http-post-iota",
+    "type": "http request",
+    "z": "tab-iot-onchain",
+    "name": "POST IOTA RPC",
+    "method": "POST",
+    "ret": "obj",
+    "paytoqs": "ignore",
+    "url": "http://fullnode:9000",
+    "tls": "",
+    "persist": false,
+    "proxy": "",
+    "x": 880,
+    "y": 120,
+    "wires": [["fn-extract-digest"]]
+  },
+  {
+    "id": "fn-extract-digest",
+    "type": "function",
+    "z": "tab-iot-onchain",
+    "name": "擷取 tx_digest & 組裝回應",
+    "func": "const result = msg.payload;\n\nif (result && result.result) {\n    const digest = result.result.digest || result.result.txDigest || 'unknown';\n    node.status({ fill: 'green', shape: 'dot', text: digest.substring(0, 16) + '...' });\n    \n    msg.topic = msg.responseTopic;\n    msg.payload = {\n        deviceId: msg.deviceId,\n        txDigest: digest,\n        timestamp: msg.timestamp,\n        status: 'confirmed'\n    };\n} else if (result && result.error) {\n    node.status({ fill: 'red', shape: 'ring', text: result.error.message });\n    node.warn('IOTA tx error: ' + JSON.stringify(result.error));\n    \n    msg.topic = msg.responseTopic;\n    msg.payload = {\n        deviceId: msg.deviceId,\n        error: result.error.message,\n        status: 'failed'\n    };\n} else {\n    node.status({ fill: 'yellow', shape: 'ring', text: 'unknown response' });\n    return null;\n}\n\nreturn msg;",
+    "outputs": 1,
+    "x": 1100,
+    "y": 120,
+    "wires": [["mqtt-out-tx-digest"]]
+  },
+  {
+    "id": "mqtt-out-tx-digest",
+    "type": "mqtt out",
+    "z": "tab-iot-onchain",
+    "name": "回傳 tx_digest 給設備",
+    "topic": "",
+    "qos": "1",
+    "retain": "false",
+    "respTopic": "",
+    "contentType": "",
+    "userProps": "",
+    "correl": "",
+    "expiry": "",
+    "broker": "mqtt-broker-config",
+    "x": 1330,
+    "y": 120,
+    "wires": []
+  },
+
+  {
+    "id": "flow2-comment",
+    "type": "comment",
+    "z": "tab-device-control",
+    "name": "Flow 2: HTTP API → 設備控制指令",
+    "info": "1. HTTP POST /api/device/:id/command\n2. 驗證指令合法性\n3. MQTT 下發指令至設備",
+    "x": 200,
+    "y": 40
+  },
+  {
+    "id": "http-in-command",
+    "type": "http in",
+    "z": "tab-device-control",
+    "name": "POST /api/device/:id/command",
+    "url": "/api/device/:id/command",
+    "method": "post",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 210,
+    "y": 120,
+    "wires": [["fn-validate-command"]]
+  },
+  {
+    "id": "fn-validate-command",
+    "type": "function",
+    "z": "tab-device-control",
+    "name": "驗證指令",
+    "func": "const deviceId = msg.req.params.id;\nconst command = msg.payload;\n\n// 允許的指令白名單\nconst ALLOWED_COMMANDS = ['power_on', 'power_off', 'set_brightness', 'set_temperature', 'set_color', 'query_status'];\n\nif (!command || !command.action) {\n    msg.statusCode = 400;\n    msg.payload = { error: 'Missing command.action field' };\n    return [null, msg];\n}\n\nif (!ALLOWED_COMMANDS.includes(command.action)) {\n    msg.statusCode = 400;\n    msg.payload = { error: `Unknown command: ${command.action}. Allowed: ${ALLOWED_COMMANDS.join(', ')}` };\n    return [null, msg];\n}\n\nif (!deviceId || !/^[a-zA-Z0-9_-]+$/.test(deviceId)) {\n    msg.statusCode = 400;\n    msg.payload = { error: 'Invalid device ID format' };\n    return [null, msg];\n}\n\n// 指令合法，組裝 MQTT 訊息\nconst mqttMsg = {\n    action: command.action,\n    params: command.params || {},\n    requestId: `cmd_${Date.now()}`,\n    timestamp: new Date().toISOString()\n};\n\nconst outMsg = {\n    topic: `home/devices/${deviceId}/command`,\n    payload: mqttMsg,\n    deviceId: deviceId\n};\n\n// HTTP 成功回應\nconst httpResponse = Object.assign({}, msg);\nhttpResponse.statusCode = 202;\nhttpResponse.payload = { \n    status: 'dispatched', \n    deviceId: deviceId,\n    requestId: mqttMsg.requestId \n};\n\nreturn [outMsg, httpResponse];",
+    "outputs": 2,
+    "x": 450,
+    "y": 120,
+    "wires": [["fn-format-mqtt-command"], ["http-response-command"]]
+  },
+  {
+    "id": "fn-format-mqtt-command",
+    "type": "function",
+    "z": "tab-device-control",
+    "name": "格式化 MQTT 指令",
+    "func": "// 將 payload 序列化為 JSON 字串（部分設備需要字串而非物件）\nmsg.payload = JSON.stringify(msg.payload);\nreturn msg;",
+    "outputs": 1,
+    "x": 680,
+    "y": 100,
+    "wires": [["mqtt-out-command"]]
+  },
+  {
+    "id": "mqtt-out-command",
+    "type": "mqtt out",
+    "z": "tab-device-control",
+    "name": "下發指令至設備",
+    "topic": "",
+    "qos": "1",
+    "retain": "false",
+    "broker": "mqtt-broker-config",
+    "x": 900,
+    "y": 100,
+    "wires": []
+  },
+  {
+    "id": "http-response-command",
+    "type": "http response",
+    "z": "tab-device-control",
+    "name": "HTTP 回應",
+    "statusCode": "",
+    "headers": {},
+    "x": 680,
+    "y": 160,
+    "wires": []
+  },
+
+  {
+    "id": "flow3-comment",
+    "type": "comment",
+    "z": "tab-iota-events",
+    "name": "Flow 3: IOTA Checkpoint 事件 → MQTT",
+    "info": "1. WebSocket 訂閱 IOTA Full Node checkpoint 事件\n2. Switch 過濾家庭自動化相關交易\n3. MQTT 廣播至 home/iota/events",
+    "x": 230,
+    "y": 40
+  },
+  {
+    "id": "ws-in-iota",
+    "type": "websocket in",
+    "z": "tab-iota-events",
+    "name": "IOTA Full Node WS",
+    "server": "",
+    "client": "ws-client-iota",
+    "x": 170,
+    "y": 120,
+    "wires": [["fn-parse-iota-event"]]
+  },
+  {
+    "id": "ws-client-iota",
+    "type": "websocket-client",
+    "path": "ws://fullnode:9000",
+    "tls": "",
+    "wholemsg": "false"
+  },
+  {
+    "id": "fn-parse-iota-event",
+    "type": "function",
+    "z": "tab-iota-events",
+    "name": "解析 IOTA Checkpoint 事件",
+    "func": "// IOTA Full Node 透過 WebSocket 推送 checkpoint 事件\nlet event;\ntry {\n    event = (typeof msg.payload === 'string') ? JSON.parse(msg.payload) : msg.payload;\n} catch (e) {\n    return null;\n}\n\n// 只處理 checkpoint 相關事件\nif (!event || event.method !== 'iota_subscribeEvent') return null;\n\nconst params = event.params || {};\nconst result = params.result || {};\n\nmsg.iotaEvent = result;\nmsg.eventType = result.type || 'unknown';\nmsg.txDigest = result.id && result.id.txDigest;\nmsg.sender = result.sender;\n\nreturn msg;",
+    "outputs": 1,
+    "x": 410,
+    "y": 120,
+    "wires": [["switch-filter-home-events"]]
+  },
+  {
+    "id": "switch-filter-home-events",
+    "type": "switch",
+    "z": "tab-iota-events",
+    "name": "過濾家庭自動化交易",
+    "property": "eventType",
+    "propertyType": "msg",
+    "rules": [
+      { "t": "cont", "v": "home_iot", "vt": "str" },
+      { "t": "cont", "v": "HomeDevice", "vt": "str" },
+      { "t": "cont", "v": "automation", "vt": "str" }
+    ],
+    "checkall": "false",
+    "repair": false,
+    "outputs": 3,
+    "x": 660,
+    "y": 120,
+    "wires": [
+      ["fn-format-home-event"],
+      ["fn-format-home-event"],
+      ["fn-format-home-event"]
+    ]
+  },
+  {
+    "id": "fn-format-home-event",
+    "type": "function",
+    "z": "tab-iota-events",
+    "name": "格式化廣播訊息",
+    "func": "msg.topic = 'home/iota/events';\nmsg.payload = JSON.stringify({\n    eventType: msg.eventType,\n    txDigest: msg.txDigest,\n    sender: msg.sender,\n    data: msg.iotaEvent,\n    receivedAt: new Date().toISOString()\n});\nreturn msg;",
+    "outputs": 1,
+    "x": 880,
+    "y": 120,
+    "wires": [["mqtt-out-iota-events"]]
+  },
+  {
+    "id": "mqtt-out-iota-events",
+    "type": "mqtt out",
+    "z": "tab-iota-events",
+    "name": "廣播至 home/iota/events",
+    "topic": "home/iota/events",
+    "qos": "0",
+    "retain": "false",
+    "broker": "mqtt-broker-config",
+    "x": 1100,
+    "y": 120,
+    "wires": []
+  },
+  {
+    "id": "inject-ws-subscribe",
+    "type": "inject",
+    "z": "tab-iota-events",
+    "name": "啟動時訂閱 IOTA 事件",
+    "props": [{ "p": "payload" }],
+    "repeat": "",
+    "crontab": "",
+    "once": true,
+    "onceDelay": "5",
+    "topic": "",
+    "payload": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"iota_subscribeEvent\",\"params\":[{\"All\":[]}]}",
+    "payloadType": "json",
+    "x": 200,
+    "y": 200,
+    "wires": [["ws-out-subscribe"]]
+  },
+  {
+    "id": "ws-out-subscribe",
+    "type": "websocket out",
+    "z": "tab-iota-events",
+    "name": "發送訂閱請求",
+    "server": "",
+    "client": "ws-client-iota",
+    "x": 470,
+    "y": 200,
+    "wires": []
+  }
+]

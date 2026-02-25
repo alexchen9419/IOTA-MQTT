@@ -1,0 +1,282 @@
+---
+validator_configs:
+  - authority-key-pair:
+      value: K1rIZKkV/p1KDmKP41de9LAPmyqmXRwkcgnl+Ftht0w=
+    protocol-key-pair:
+      value: iotaprivkey1qzhwunjrkcst2pv430j999kqzdkgmgu22u8rhed230lc9prku6225uek096
+    account-key-pair:
+      value: iotaprivkey1qz5sdezfzm2wpaez28wnvfcha555wpydex0jj3wkjsxv8352ppvscaxrcz7
+    network-key-pair:
+      value: iotaprivkey1qrmmkf5ruu7rynhka7urzdc5lhr6g5n3vphlwuv6n3ty2ftc3zp8ke7cjfj
+    db-path: genesis/authorities_db/a3b5d168f135
+    network-address: /ip4/172.30.1.1/tcp/2000/http
+    json-rpc-address: "127.0.0.1:34249"
+    enable-rest-api: true
+    rest:
+      enable-unstable-apis: true
+    metrics-address: "0.0.0.0:2002"
+    admin-interface-address: "172.30.1.1:2004"
+    consensus-config:
+      db-path: genesis/consensus_db/a3b5d168f135
+      db-retention-epochs: ~
+      db-pruner-period-secs: ~
+      max-pending-transactions: ~
+      max-submit-position: ~
+      submit-delay-step-override-millis: ~
+      parameters: ~
+    enable-index-processing: true
+    jsonrpc-server-type: ~
+    grpc-load-shed: ~
+    grpc-concurrency-limit: 20000000000
+    p2p-config:
+      listen-address: "0.0.0.0:2001"
+      external-address: /ip4/172.30.1.1/udp/2001/http
+      state-sync:
+        checkpoint-content-timeout-ms: 10000
+    genesis:
+      genesis-file-location: genesis/genesis.blob
+    migration-tx-data-path: genesis/migration.blob
+    authority-store-pruning-config:
+      num-latest-epoch-dbs-to-retain: 3
+      epoch-db-pruning-period-secs: 3600
+      num-epochs-to-retain: 0
+      max-checkpoints-in-batch: 10
+      max-transactions-in-batch: 1000
+    end-of-epoch-broadcast-channel-capacity: 128
+    checkpoint-executor-config:
+      checkpoint-execution-max-concurrency: 40
+      local-execution-timeout-sec: 30
+    db-checkpoint-config:
+      perform-db-checkpoints-at-epoch-end: false
+    expensive-safety-check-config:
+      enable-epoch-iota-conservation-check: false
+      enable-deep-per-tx-iota-conservation-check: false
+      force-disable-epoch-iota-conservation-check: false
+      enable-state-consistency-check: false
+      force-disable-state-consistency-check: false
+      enable-secondary-index-checks: false
+    transaction-deny-config:
+      package-publish-disabled: false
+      package-upgrade-disabled: false
+      shared-object-disabled: false
+      user-transaction-disabled: false
+      receiving-objects-disabled: false
+      zklogin-sig-disabled: false
+      zklogin-disabled-providers: []
+      move-authenticator-disabled: false
+    certificate-deny-config: {}
+    state-debug-dump-config: {}
+    state-archive-write-config:
+      concurrency: 0
+      use-for-pruning-watermark: false
+    state-archive-read-config: []
+    state-snapshot-write-config:
+      concurrency: 0
+    indexer-max-subscriptions: ~
+    transaction-kv-store-read-config:
+      base-url: ""
+      cache-size: 100000
+    jwk-fetch-interval-seconds: 3600
+    zklogin-oauth-providers:
+      Mainnet:
+        - Apple
+        - Credenza3
+        - Facebook
+        - Google
+        - KarrierOne
+        - Twitch
+      Testnet:
+        - Apple
+        - Credenza3
+        - Facebook
+        - Google
+        - KarrierOne
+        - Twitch
+      Unknown:
+        - Apple
+        - Credenza3
+        - Facebook
+        - Google
+        - Kakao
+        - KarrierOne
+        - Microsoft
+        - Slack
+        - TestIssuer
+        - Twitch
+    authority-overload-config:
+      max-txn-age-in-queue:
+        secs: 0
+        nanos: 500000000
+      overload-monitor-interval:
+        secs: 10
+        nanos: 0
+      execution-queue-latency-soft-limit:
+        secs: 1
+        nanos: 0
+      execution-queue-latency-hard-limit:
+        secs: 10
+        nanos: 0
+      max-load-shedding-percentage: 95
+      min-load-shedding-percentage-above-hard-limit: 50
+      safe-transaction-ready-rate: 100
+      check-system-overload-at-signing: true
+      max-transaction-manager-queue-length: 100000
+      max-transaction-manager-per-object-queue-length: 20
+    execution-cache: writeback-cache
+    execution-cache-config:
+      writeback-cache: {}
+    enable-validator-tx-finalizer: true
+    verifier-signing-config:
+      max-per-fun-meter-units: ~
+      max-per-mod-meter-units: ~
+      max-per-pkg-meter-units: ~
+      max-back-edges-per-function: ~
+      max-back-edges-per-module: ~
+    enable-grpc-api: false
+  - authority-key-pair:
+      value: YgNvpCogQP0rUocUOVlV5AWl/wRDJszZUb89XtnvUiU=
+    protocol-key-pair:
+      value: iotaprivkey1qptfp2mrtsvl3f3mmnawrsku8u2deya2pn6lmnesxdeajkx0tgnfjfjhls7
+    account-key-pair:
+      value: iotaprivkey1qp6uhyj2reua6v33qx8xem2m3psjp658ydsqqmj8p99hsxmc3ag3zt7yqyd
+    network-key-pair:
+      value: iotaprivkey1qrjyzldx78w6t0s5ftp664rs7stwqahj2v2pg8lz9ks7cwgfk7l4uggv3re
+    db-path: genesis/authorities_db/8e376e21319c
+    network-address: /ip4/172.30.1.2/tcp/2010/http
+    json-rpc-address: "127.0.0.1:40083"
+    enable-rest-api: true
+    rest:
+      enable-unstable-apis: true
+    metrics-address: "0.0.0.0:2012"
+    admin-interface-address: "172.30.1.2:2014"
+    consensus-config:
+      db-path: genesis/consensus_db/8e376e21319c
+      db-retention-epochs: ~
+      db-pruner-period-secs: ~
+      max-pending-transactions: ~
+      max-submit-position: ~
+      submit-delay-step-override-millis: ~
+      parameters: ~
+    enable-index-processing: true
+    jsonrpc-server-type: ~
+    grpc-load-shed: ~
+    grpc-concurrency-limit: 20000000000
+    p2p-config:
+      listen-address: "0.0.0.0:2011"
+      external-address: /ip4/172.30.1.2/udp/2011/http
+      state-sync:
+        checkpoint-content-timeout-ms: 10000
+    genesis:
+      genesis-file-location: genesis/genesis.blob
+    migration-tx-data-path: genesis/migration.blob
+    authority-store-pruning-config:
+      num-latest-epoch-dbs-to-retain: 3
+      epoch-db-pruning-period-secs: 3600
+      num-epochs-to-retain: 0
+      max-checkpoints-in-batch: 10
+      max-transactions-in-batch: 1000
+    end-of-epoch-broadcast-channel-capacity: 128
+    checkpoint-executor-config:
+      checkpoint-execution-max-concurrency: 40
+      local-execution-timeout-sec: 30
+    db-checkpoint-config:
+      perform-db-checkpoints-at-epoch-end: false
+    expensive-safety-check-config:
+      enable-epoch-iota-conservation-check: false
+      enable-deep-per-tx-iota-conservation-check: false
+      force-disable-epoch-iota-conservation-check: false
+      enable-state-consistency-check: false
+      force-disable-state-consistency-check: false
+      enable-secondary-index-checks: false
+    transaction-deny-config:
+      package-publish-disabled: false
+      package-upgrade-disabled: false
+      shared-object-disabled: false
+      user-transaction-disabled: false
+      receiving-objects-disabled: false
+      zklogin-sig-disabled: false
+      zklogin-disabled-providers: []
+      move-authenticator-disabled: false
+    certificate-deny-config: {}
+    state-debug-dump-config: {}
+    state-archive-write-config:
+      concurrency: 0
+      use-for-pruning-watermark: false
+    state-archive-read-config: []
+    state-snapshot-write-config:
+      concurrency: 0
+    indexer-max-subscriptions: ~
+    transaction-kv-store-read-config:
+      base-url: ""
+      cache-size: 100000
+    jwk-fetch-interval-seconds: 3600
+    zklogin-oauth-providers:
+      Mainnet:
+        - Apple
+        - Credenza3
+        - Facebook
+        - Google
+        - KarrierOne
+        - Twitch
+      Testnet:
+        - Apple
+        - Credenza3
+        - Facebook
+        - Google
+        - KarrierOne
+        - Twitch
+      Unknown:
+        - Apple
+        - Credenza3
+        - Facebook
+        - Google
+        - Kakao
+        - KarrierOne
+        - Microsoft
+        - Slack
+        - TestIssuer
+        - Twitch
+    authority-overload-config:
+      max-txn-age-in-queue:
+        secs: 0
+        nanos: 500000000
+      overload-monitor-interval:
+        secs: 10
+        nanos: 0
+      execution-queue-latency-soft-limit:
+        secs: 1
+        nanos: 0
+      execution-queue-latency-hard-limit:
+        secs: 10
+        nanos: 0
+      max-load-shedding-percentage: 95
+      min-load-shedding-percentage-above-hard-limit: 50
+      safe-transaction-ready-rate: 100
+      check-system-overload-at-signing: true
+      max-transaction-manager-queue-length: 100000
+      max-transaction-manager-per-object-queue-length: 20
+    execution-cache: writeback-cache
+    execution-cache-config:
+      writeback-cache: {}
+    enable-validator-tx-finalizer: true
+    verifier-signing-config:
+      max-per-fun-meter-units: ~
+      max-per-mod-meter-units: ~
+      max-per-pkg-meter-units: ~
+      max-back-edges-per-function: ~
+      max-back-edges-per-module: ~
+    enable-grpc-api: false
+account_keys: []
+committee_with_network:
+  epoch_id: 0
+  validators:
+    jjduITGcAADDQMV69rxRF7H+2Hwg3qAUoiuWPxNvXBadJd+CRTJUll+OPGO25ch8Ek0H//KkF7Jjk/AGH8yy7krDyI4cvzqYvANYNQwXapFiBAicmiivu0gEDadlDqHU:
+      - 5000
+      - network_address: /ip4/172.30.1.2/tcp/2010/http
+        primary_address: /ip4/172.30.1.2/udp/2013/http
+        network_public_key: CrLqB5N8PwZ1gH1jHoIRijsZRbF71yCJSsfai0DE2Do=
+    o7XRaPE127XfQQ3XkSGRMlcw0lSxuV40a3Qb73d4tihjP0FpfGMqmk0AwtXccQgYCcAFO102muPFlRbdaytgiAL8GniIrRxrCQYKCuzUTuvfqFLyV7EoHJGzmDvjMkjn:
+      - 5000
+      - network_address: /ip4/172.30.1.1/tcp/2000/http
+        primary_address: /ip4/172.30.1.1/udp/2003/http
+        network_public_key: 0fizOj7h4vvqcl8m/y3p33dKUlRzy0jcQWQMqYyL0Dc=

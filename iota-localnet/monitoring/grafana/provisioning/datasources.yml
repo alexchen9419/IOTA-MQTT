@@ -1,0 +1,39 @@
+# monitoring/grafana/provisioning/datasources.yml
+# Grafana 自動佈建資料來源
+
+apiVersion: 1
+
+deleteDatasources:
+  - name: Prometheus
+    orgId: 1
+
+datasources:
+  # ── Prometheus ─────────────────────────────────────────────────────────
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    orgId: 1
+    editable: false
+    jsonData:
+      httpMethod: POST
+      timeInterval: "15s"
+      exemplarTraceIdDestinations:
+        - name: trace_id
+          datasourceUid: ""
+
+  # ── MQTT（即時 IoT 資料流）────────────────────────────────────────────
+  # 需要 grafana-mqtt-datasource plugin（已在 docker-compose 中透過
+  # GF_INSTALL_PLUGINS=grafana-mqtt-datasource 自動安裝）
+  - name: MQTT-Mosquitto
+    type: grafana-mqtt-datasource
+    access: proxy
+    orgId: 1
+    editable: true
+    jsonData:
+      uri: ws://mosquitto:9001
+      # 若 Mosquitto 啟用帳號密碼，填入 admin 帳號
+      username: admin
+    secureJsonData:
+      password: admin_secret   # 與 mqtt-init.sh 中的 admin 密碼一致

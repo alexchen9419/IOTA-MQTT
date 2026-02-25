@@ -1,0 +1,75 @@
+# monitoring/prometheus.yml
+# Prometheus 設定 — 抓取所有 IOTA 節點及 PostgreSQL Exporter 的 metrics
+
+global:
+  scrape_interval: 15s       # 每 15 秒抓取一次
+  evaluation_interval: 15s   # 每 15 秒評估警報規則
+  scrape_timeout: 10s
+  external_labels:
+    network: "iota-localnet"
+    environment: "dev"
+
+# ── 警報規則（可選） ────────────────────────────────────────────────────────
+rule_files:
+  - /etc/prometheus/rules/*.yml
+
+# ── Alertmanager（可選，如須通知） ─────────────────────────────────────────
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets: ['alertmanager:9093']
+
+# ── 抓取設定 ────────────────────────────────────────────────────────────────
+scrape_configs:
+
+  # Prometheus 自身
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+    metrics_path: /metrics
+
+  # ── IOTA Validator 1 ──────────────────────────────────────────────────────
+  - job_name: iota-validator1
+    static_configs:
+      - targets: ["validator1:9184"]
+        labels:
+          node_type: "validator"
+          node_id: "validator1"
+    metrics_path: /metrics
+    scrape_interval: 15s
+
+  # ── IOTA Validator 2 ──────────────────────────────────────────────────────
+  - job_name: iota-validator2
+    static_configs:
+      - targets: ["validator2:9184"]
+        labels:
+          node_type: "validator"
+          node_id: "validator2"
+    metrics_path: /metrics
+    scrape_interval: 15s
+
+  # ── IOTA Full Node ────────────────────────────────────────────────────────
+  - job_name: iota-fullnode
+    static_configs:
+      - targets: ["fullnode:9184"]
+        labels:
+          node_type: "fullnode"
+          node_id: "fullnode"
+    metrics_path: /metrics
+    scrape_interval: 15s
+
+  # ── IOTA Indexer ─────────────────────────────────────────────────────────
+  - job_name: iota-indexer
+    static_configs:
+      - targets: ["indexer:9184"]
+        labels:
+          node_type: "indexer"
+          node_id: "indexer"
+    metrics_path: /metrics
+    scrape_interval: 30s
+
+  # ── Node-RED（如有暴露 /metrics） ────────────────────────────────────────
+  # - job_name: nodered
+  #   static_configs:
+  #     - targets: ["nodered:1880"]
+  #   metrics_path: /metrics

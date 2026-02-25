@@ -1,0 +1,17 @@
+# monitoring/grafana/provisioning/dashboards.yml
+# Grafana 自動載入儀表板設定
+
+apiVersion: 1
+
+providers:
+  - name: IOTA Localnet Dashboards
+    orgId: 1
+    folder: "IOTA"
+    folderUid: iota-localnet
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards
+      foldersFromFilesStructure: false

@@ -1,0 +1,348 @@
+# docker-compose.yml — IOTA Rebased 私有網路 + IoT 監控平台
+# ============================================================
+# 服務清單:
+#   genesis-init  — 一次性容器，等待 genesis.blob 存在
+#   validator1    — IOTA 驗證者節點 1
+#   validator2    — IOTA 驗證者節點 2
+#   fullnode      — IOTA Full Node（主要 RPC 入口 :9000）
+#   postgres      — PostgreSQL 15（Indexer 資料庫）
+#   indexer       — IOTA Indexer（:9001）
+#   mosquitto     — Eclipse Mosquitto MQTT Broker（:1883 TCP, :9001 WS）
+#   nodered       — Node-RED 視覺化流程引擎（:1880）
+#   iota-mqtt-bridge — MQTT→IOTA 鏈寫入 Bridge
+#   prometheus    — 指標收集（:9090）
+#   grafana       — 監控儀表板（:3001）
+
+networks:
+  iota-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.30.0.0/16
+
+volumes:
+  validator1-db:
+  validator2-db:
+  fullnode-db:
+  postgres-data:
+  mosquitto-data:
+  mosquitto-log:
+  nodered-data:
+  prometheus-data:
+  grafana-data:
+
+services:
+
+  # ── genesis-init ──────────────────────────────────────────────────────────
+  # 確認 genesis.blob 已存在後退出（其他服務 depends_on 它）
+  genesis-init:
+    image: busybox:latest
+    container_name: iota-genesis-init
+    volumes:
+      - ./genesis:/genesis:ro
+    command: >
+      sh -c "
+        if [ ! -f /genesis/genesis.blob ]; then
+          echo '[genesis-init] ERROR: /genesis/genesis.blob 不存在！';
+          echo '[genesis-init] 請先執行: bash scripts/bootstrap-genesis.sh';
+          exit 1;
+        fi;
+        echo '[genesis-init] genesis.blob 已確認存在，啟動網路...';
+        exit 0;
+      "
+    networks:
+      - iota-net
+
+  # ── validator1 ────────────────────────────────────────────────────────────
+  validator1:
+    image: iotaledger/iota-node:mainnet
+    container_name: iota-validator1
+    restart: unless-stopped
+    depends_on:
+      genesis-init:
+        condition: service_completed_successfully
+    environment:
+      - RUST_LOG=info,iota_core=warn
+      - RUST_BACKTRACE=1
+    volumes:
+      - ./genesis/genesis.blob:/opt/iota/genesis/genesis.blob:ro
+      - ./validator1/config/validator.yaml:/opt/iota/config/validator.yaml:ro
+      - validator1-db:/opt/iota/db
+    command: ["iota-node", "--config-path", "/opt/iota/config/validator.yaml"]
+    ports:
+      - "8180:9000"    # JSON-RPC（對外，避免與 fullnode :9000 衝突）
+      - "8184:2001/udp" # P2P
+      - "8200:2000"    # 共識 TCP（Starfish）
+      - "8191:9184"    # Prometheus metrics
+    networks:
+      iota-net:
+        ipv4_address: 172.30.1.1
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:9184/metrics"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # ── validator2 ────────────────────────────────────────────────────────────
+  validator2:
+    image: iotaledger/iota-node:mainnet
+    container_name: iota-validator2
+    restart: unless-stopped
+    depends_on:
+      genesis-init:
+        condition: service_completed_successfully
+    environment:
+      - RUST_LOG=info,iota_core=warn
+      - RUST_BACKTRACE=1
+    volumes:
+      - ./genesis/genesis.blob:/opt/iota/genesis/genesis.blob:ro
+      - ./validator2/config/validator.yaml:/opt/iota/config/validator.yaml:ro
+      - validator2-db:/opt/iota/db
+    command: ["iota-node", "--config-path", "/opt/iota/config/validator.yaml"]
+    ports:
+      - "8280:9000"    # JSON-RPC
+      - "8284:2011/udp" # P2P
+      - "8210:2010"    # 共識 TCP（Starfish）
+      - "8291:9184"    # Prometheus metrics
+    networks:
+      iota-net:
+        ipv4_address: 172.30.1.2
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:9184/metrics"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # ── fullnode ──────────────────────────────────────────────────────────────
+  fullnode:
+    image: iotaledger/iota-node:mainnet
+    container_name: iota-fullnode
+    restart: unless-stopped
+    depends_on:
+      validator1:
+        condition: service_healthy
+      validator2:
+        condition: service_healthy
+    environment:
+      - RUST_LOG=info,iota_core=warn
+      - RUST_BACKTRACE=1
+    volumes:
+      - ./genesis/genesis.blob:/opt/iota/genesis/genesis.blob:ro
+      - ./fullnode/config/fullnode.yaml:/opt/iota/config/fullnode.yaml:ro
+      - fullnode-db:/opt/iota/db
+    command: ["iota-node", "--config-path", "/opt/iota/config/fullnode.yaml"]
+    ports:
+      - "9000:9000"    # 主要 JSON-RPC / WebSocket
+      - "9184:9184"    # Prometheus metrics
+    networks:
+      iota-net:
+        ipv4_address: 172.30.1.10
+    healthcheck:
+      test:
+        - "CMD"
+        - "curl"
+        - "-sf"
+        - "-X"
+        - "POST"
+        - "http://localhost:9000"
+        - "-H"
+        - "Content-Type: application/json"
+        - "-d"
+        - '{"jsonrpc":"2.0","id":1,"method":"iota_getTotalTransactionBlocks","params":[]}'
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
+
+  # ── postgres ──────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:15-alpine
+    container_name: iota-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: iota_indexer
+      POSTGRES_USER: iota
+      POSTGRES_PASSWORD: iota_secret
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      iota-net:
+        ipv4_address: 172.30.2.1
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U iota -d iota_indexer"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # ── indexer ───────────────────────────────────────────────────────────────
+  indexer:
+    image: iotaledger/iota-indexer:mainnet
+    container_name: iota-indexer
+    restart: unless-stopped
+    depends_on:
+      fullnode:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    command:
+      - iota-indexer
+      - --database-url
+      - postgresql://iota:iota_secret@postgres:5432/iota_indexer
+      - indexer
+      - --remote-store-url
+      - http://fullnode:9000/api/v1
+      - --objects-snapshot-min-checkpoint-lag
+      - "5"
+      - --reset-db
+    environment:
+      - RUST_LOG=info,iota_indexer=debug
+    ports:
+      - "9001:9001"    # Indexer RPC
+      - "9102:9184"    # Prometheus metrics
+    networks:
+      iota-net:
+        ipv4_address: 172.30.2.2
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9184/metrics || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+  # ── mosquitto ─────────────────────────────────────────────────────────────
+  # ⭐ MQTT Broker — IoT 設備訊息中樞
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: iota-mosquitto
+    restart: unless-stopped
+    volumes:
+      - ./mqtt/config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./mqtt/config/acl.conf:/mosquitto/config/acl.conf:ro
+      - ./mqtt/config/passwd:/mosquitto/config/passwd
+      - mosquitto-data:/mosquitto/data
+      - mosquitto-log:/mosquitto/log
+    ports:
+      - "1883:1883"    # MQTT TCP（IoT 設備）
+      - "9883:9001"    # MQTT WebSocket（瀏覽器 MQTT.js；9001 已被 indexer 佔用，改為 9883）
+    networks:
+      iota-net:
+        ipv4_address: 172.30.3.1
+    healthcheck:
+      test: ["CMD", "mosquitto_pub", "-h", "localhost", "-p", "1883",
+             "-u", "admin", "-P", "admin_secret",
+             "-t", "health/check", "-m", "ping", "-q", "0"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  # ── nodered ───────────────────────────────────────────────────────────────
+  # ⭐ Node-RED — IoT 視覺化流程引擎
+  nodered:
+    image: nodered/node-red:latest
+    container_name: iota-nodered
+    restart: unless-stopped
+    depends_on:
+      - mosquitto
+      - fullnode
+    environment:
+      - TZ=Asia/Taipei
+      - NODE_RED_ENABLE_PROJECTS=false
+    volumes:
+      - nodered-data:/data
+      - ./nodered/settings.js:/data/settings.js:ro
+      - ./nodered/flows.json:/data/flows.json
+    ports:
+      - "1880:1880"    # ⭐ Node-RED Web UI
+    networks:
+      iota-net:
+        ipv4_address: 172.30.3.2
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:1880"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ── iota-mqtt-bridge ──────────────────────────────────────────────────────
+  # 獨立 Bridge：訂閱 MQTT → 寫入 IOTA 鏈
+  iota-mqtt-bridge:
+    build:
+      context: ./mqtt/bridge
+      dockerfile: Dockerfile
+    container_name: iota-mqtt-bridge
+    restart: unless-stopped
+    depends_on:
+      mosquitto:
+        condition: service_healthy
+      fullnode:
+        condition: service_healthy
+    environment:
+      - MQTT_HOST=mosquitto
+      - MQTT_PORT=1883
+      - MQTT_USER=bridge
+      - MQTT_PASS=bridge_secret   # 請在 mqtt-init.sh 中設定
+      - IOTA_RPC_URL=http://fullnode:9000
+      - IOTA_PRIVATE_KEY=    # 填入 bridge 帳戶私鑰（base64）
+      - LOG_LEVEL=info
+    networks:
+      iota-net:
+        ipv4_address: 172.30.3.3
+
+  # ── prometheus ────────────────────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: iota-prometheus
+    restart: unless-stopped
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=30d"
+      - "--web.enable-lifecycle"
+    ports:
+      - "9090:9090"
+    networks:
+      iota-net:
+        ipv4_address: 172.30.4.1
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:9090/-/healthy"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  # ── grafana ───────────────────────────────────────────────────────────────
+  # ⭐ Grafana — 主要 WebUI 監控儀表板
+  grafana:
+    image: grafana/grafana:latest
+    container_name: iota-grafana
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+    environment:
+      - GF_SERVER_HTTP_PORT=3001
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-mqtt-datasource
+      - GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=/etc/grafana/provisioning/dashboards/iota-overview.json
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+    ports:
+      - "3001:3001"    # ⭐ Grafana Web UI
+    networks:
+      iota-net:
+        ipv4_address: 172.30.4.2
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3001/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s

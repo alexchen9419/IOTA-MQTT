@@ -1,0 +1,30 @@
+---
+keystore:
+  File: genesis/iota.keystore
+envs:
+  - alias: mainnet
+    rpc: "https://api.mainnet.iota.cafe"
+    graphql: "https://graphql.mainnet.iota.cafe"
+    ws: ~
+    basic_auth: ~
+    faucet: ~
+  - alias: devnet
+    rpc: "https://api.devnet.iota.cafe"
+    graphql: "https://graphql.devnet.iota.cafe"
+    ws: ~
+    basic_auth: ~
+    faucet: "https://faucet.devnet.iota.cafe/v1/gas"
+  - alias: testnet
+    rpc: "https://api.testnet.iota.cafe"
+    graphql: "https://graphql.testnet.iota.cafe"
+    ws: ~
+    basic_auth: ~
+    faucet: "https://faucet.testnet.iota.cafe/v1/gas"
+  - alias: localnet
+    rpc: "http://127.0.0.1:9000"
+    graphql: ~
+    ws: ~
+    basic_auth: ~
+    faucet: ~
+active_env: localnet
+active_address: ~

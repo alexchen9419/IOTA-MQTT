@@ -1,0 +1,132 @@
+account-key-pair:
+  value: iotaprivkey1qp6uhyj2reua6v33qx8xem2m3psjp658ydsqqmj8p99hsxmc3ag3zt7yqyd
+admin-interface-address: 127.0.0.1:1337
+authority-key-pair:
+  value: YgNvpCogQP0rUocUOVlV5AWl/wRDJszZUb89XtnvUiU=
+authority-overload-config:
+  check-system-overload-at-signing: true
+  execution-queue-latency-hard-limit:
+    nanos: 0
+    secs: 10
+  execution-queue-latency-soft-limit:
+    nanos: 0
+    secs: 1
+  max-load-shedding-percentage: 95
+  max-transaction-manager-per-object-queue-length: 20
+  max-transaction-manager-queue-length: 100000
+  max-txn-age-in-queue:
+    nanos: 500000000
+    secs: 0
+  min-load-shedding-percentage-above-hard-limit: 50
+  overload-monitor-interval:
+    nanos: 0
+    secs: 10
+  safe-transaction-ready-rate: 100
+authority-store-pruning-config:
+  epoch-db-pruning-period-secs: 3600
+  max-checkpoints-in-batch: 10
+  max-transactions-in-batch: 1000
+  num-epochs-to-retain: 0
+  num-latest-epoch-dbs-to-retain: 3
+certificate-deny-config: {}
+checkpoint-executor-config:
+  checkpoint-execution-max-concurrency: 40
+  local-execution-timeout-sec: 30
+consensus-config:
+  db-path: /opt/iota/db/consensus
+  db-pruner-period-secs: null
+  db-retention-epochs: null
+  max-pending-transactions: null
+  max-submit-position: null
+  parameters: null
+  submit-delay-step-override-millis: null
+db-checkpoint-config:
+  perform-db-checkpoints-at-epoch-end: false
+db-path: /opt/iota/db
+enable-grpc-api: false
+enable-index-processing: true
+enable-rest-api: true
+enable-validator-tx-finalizer: true
+end-of-epoch-broadcast-channel-capacity: 128
+execution-cache: writeback-cache
+execution-cache-config:
+  writeback-cache: {}
+expensive-safety-check-config:
+  enable-deep-per-tx-iota-conservation-check: false
+  enable-epoch-iota-conservation-check: false
+  enable-secondary-index-checks: false
+  enable-state-consistency-check: false
+  force-disable-epoch-iota-conservation-check: false
+  force-disable-state-consistency-check: false
+genesis:
+  genesis-file-location: /opt/iota/genesis/genesis.blob
+grpc-concurrency-limit: 20000000000
+grpc-load-shed: null
+indexer-max-subscriptions: null
+json-rpc-address: 0.0.0.0:9000
+jsonrpc-server-type: null
+jwk-fetch-interval-seconds: 3600
+metrics-address: 0.0.0.0:9184
+network-address: /ip4/0.0.0.0/tcp/2010/http
+network-key-pair:
+  value: iotaprivkey1qrjyzldx78w6t0s5ftp664rs7stwqahj2v2pg8lz9ks7cwgfk7l4uggv3re
+p2p-config:
+  external-address: /ip4/172.30.1.2/udp/2011/http
+  listen-address: 0.0.0.0:2011
+  state-sync:
+    checkpoint-content-timeout-ms: 10000
+protocol-key-pair:
+  value: iotaprivkey1qptfp2mrtsvl3f3mmnawrsku8u2deya2pn6lmnesxdeajkx0tgnfjfjhls7
+rest:
+  enable-unstable-apis: true
+state-archive-read-config: []
+state-archive-write-config:
+  concurrency: 0
+  use-for-pruning-watermark: false
+state-debug-dump-config: {}
+state-snapshot-write-config:
+  concurrency: 0
+transaction-deny-config:
+  move-authenticator-disabled: false
+  package-publish-disabled: false
+  package-upgrade-disabled: false
+  receiving-objects-disabled: false
+  shared-object-disabled: false
+  user-transaction-disabled: false
+  zklogin-disabled-providers: []
+  zklogin-sig-disabled: false
+transaction-kv-store-read-config:
+  base-url: ''
+  cache-size: 100000
+verifier-signing-config:
+  max-back-edges-per-function: null
+  max-back-edges-per-module: null
+  max-per-fun-meter-units: null
+  max-per-mod-meter-units: null
+  max-per-pkg-meter-units: null
+zklogin-oauth-providers:
+  Mainnet:
+  - Apple
+  - Credenza3
+  - Facebook
+  - Google
+  - KarrierOne
+  - Twitch
+  Testnet:
+  - Apple
+  - Credenza3
+  - Facebook
+  - Google
+  - KarrierOne
+  - Twitch
+  Unknown:
+  - Apple
+  - Credenza3
+  - Facebook
+  - Google
+  - Kakao
+  - KarrierOne
+  - Microsoft
+  - Slack
+  - TestIssuer
+  - Twitch

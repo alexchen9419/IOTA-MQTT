@@ -1,0 +1,131 @@
+---
+authority-key-pair:
+  value: AIKsYPkOQS5aWL+14TriV7HBLmvKVVL8wLDSb4dFOoY=
+protocol-key-pair:
+  value: iotaprivkey1qzzufag65cupshc7jmc04wzqkrct6szfkk2l7jq8mtlgc8cgcg6xsgprmc5
+account-key-pair:
+  value: iotaprivkey1qz2rvj4cc3qd8ufdxd9wdg9prcl0m7v3a4e2a8a3dm69n4nf9q2czha6fkw
+network-key-pair:
+  value: iotaprivkey1qrlzdx6ys6vrjvpejj0gy7h742vy6vwvf7yuy0lckjym78hnxw6w2aajjhn
+db-path: genesis/full_node_db/b07faac2ed46
+network-address: /ip4/127.0.0.1/tcp/38861/http
+json-rpc-address: "0.0.0.0:9000"
+enable-rest-api: true
+rest:
+  enable-unstable-apis: true
+metrics-address: "127.0.0.1:40555"
+admin-interface-address: "127.0.0.1:41209"
+enable-index-processing: true
+jsonrpc-server-type: ~
+grpc-load-shed: ~
+grpc-concurrency-limit: ~
+p2p-config:
+  listen-address: "127.0.0.1:34567"
+  external-address: /ip4/127.0.0.1/udp/34567
+  seed-peers:
+    - peer-id: d1f8b33a3ee1e2fbea725f26ff2de9df774a525473cb48dc41640ca98c8bd037
+      address: /ip4/172.30.1.1/udp/2001/http
+    - peer-id: 0ab2ea07937c3f0675807d631e82118a3b1945b17bd720894ac7da8b40c4d83a
+      address: /ip4/172.30.1.2/udp/2011/http
+  state-sync:
+    checkpoint-content-timeout-ms: 10000
+genesis:
+  genesis-file-location: genesis/genesis.blob
+migration-tx-data-path: genesis/migration.blob
+authority-store-pruning-config:
+  num-latest-epoch-dbs-to-retain: 3
+  epoch-db-pruning-period-secs: 3600
+  num-epochs-to-retain: 0
+  max-checkpoints-in-batch: 10
+  max-transactions-in-batch: 1000
+end-of-epoch-broadcast-channel-capacity: 128
+checkpoint-executor-config:
+  checkpoint-execution-max-concurrency: 40
+  local-execution-timeout-sec: 30
+db-checkpoint-config:
+  perform-db-checkpoints-at-epoch-end: false
+expensive-safety-check-config:
+  enable-epoch-iota-conservation-check: true
+  enable-deep-per-tx-iota-conservation-check: true
+  force-disable-epoch-iota-conservation-check: false
+  enable-state-consistency-check: true
+  force-disable-state-consistency-check: false
+  enable-secondary-index-checks: false
+transaction-deny-config:
+  package-publish-disabled: false
+  package-upgrade-disabled: false
+  shared-object-disabled: false
+  user-transaction-disabled: false
+  receiving-objects-disabled: false
+  zklogin-sig-disabled: false
+  zklogin-disabled-providers: []
+  move-authenticator-disabled: false
+certificate-deny-config: {}
+state-debug-dump-config: {}
+state-archive-write-config:
+  concurrency: 0
+  use-for-pruning-watermark: false
+state-archive-read-config: []
+state-snapshot-write-config:
+  concurrency: 0
+indexer-max-subscriptions: ~
+transaction-kv-store-read-config:
+  base-url: ""
+  cache-size: 100000
+jwk-fetch-interval-seconds: 3600
+zklogin-oauth-providers:
+  Mainnet:
+    - Apple
+    - Credenza3
+    - Facebook
+    - Google
+    - KarrierOne
+    - Twitch
+  Testnet:
+    - Apple
+    - Credenza3
+    - Facebook
+    - Google
+    - KarrierOne
+    - Twitch
+  Unknown:
+    - Apple
+    - Credenza3
+    - Facebook
+    - Google
+    - Kakao
+    - KarrierOne
+    - Microsoft
+    - Slack
+    - TestIssuer
+    - Twitch
+authority-overload-config:
+  max-txn-age-in-queue:
+    secs: 0
+    nanos: 500000000
+  overload-monitor-interval:
+    secs: 10
+    nanos: 0
+  execution-queue-latency-soft-limit:
+    secs: 1
+    nanos: 0
+  execution-queue-latency-hard-limit:
+    secs: 10
+    nanos: 0
+  max-load-shedding-percentage: 95
+  min-load-shedding-percentage-above-hard-limit: 50
+  safe-transaction-ready-rate: 100
+  check-system-overload-at-signing: true
+  max-transaction-manager-queue-length: 100000
+  max-transaction-manager-per-object-queue-length: 20
+execution-cache: writeback-cache
+execution-cache-config:
+  writeback-cache: {}
+enable-validator-tx-finalizer: false
+verifier-signing-config:
+  max-per-fun-meter-units: ~
+  max-per-mod-meter-units: ~
+  max-per-pkg-meter-units: ~
+  max-back-edges-per-function: ~
+  max-back-edges-per-module: ~
+enable-grpc-api: false
